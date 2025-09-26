@@ -1,0 +1,129 @@
+---
+title: "week-0-dams"
+format: html
+editor: visual
+---
+
+# Setup 
+Install packages and import data
+
+```{r}
+pacman::p_load("here", "janitor", "tidyverse", "sf", "terra", "tmap", "spData", "spDataLarge", "geodata", "kableExtra", "viridisLite")
+```
+
+Import the raw data from the data folder
+
+```{r}
+dam_raw = read_csv(here::here('data','gdw.csv'))
+
+#clean the column names 
+dam_clean = dam_raw %>% 
+  clean_names()
+```
+
+
+# Data exploration 
+Lets look at the last 10 rows 
+
+```{r}
+tail(dam_clean)
+```
+Now lets make some kable tables 
+
+```{r}
+kable(head(dam_clean))
+```
+
+I also want to know the number of rows and columns
+
+```{r}
+paste0('The Df has ', nrow(dam_clean), ' rows and ', ncol(dam_clean), ' columns')
+```
+
+I would also like to look at the column names 
+```{r}
+print(colnames(dam_clean))
+```
+
+# Index and subset data
+
+I want to get the countries first as a vector and then as a df 
+
+```{r}
+# To get a df from a df you use single brackets
+countries = dam_clean['country']
+
+#Double brackets drops the index
+countries_vec = dam_clean[['country']]
+
+class(countries_vec)
+
+```
+
+I now want to find the number of dams by each dam type 
+
+```{r}
+dam_type_sum = dam_clean %>% 
+  group_by(dam_type) %>% # Group by dam type
+  summarise(sum = n()) #use n() to find sum
+```
+
+Now we are going to subset only the dams, not the lake control dams
+
+```{r}
+sub_dam = dam_clean %>% 
+  filter(dam_type == "Dam")
+```
+
+Now we want to re-order the df by year of instillation 
+
+```{r}
+#First lets check the class of that
+
+dam_clean = dam_clean %>% 
+  arrange(year_dam)
+```
+
+
+we need the average height by country so lets make a new df 
+
+```{r}
+dam_average = dam_clean %>% 
+  group_by(country) %>% 
+  summarise(mean_h = mean(dam_hgt_m))
+
+```
+
+I want to drop Iraq due to the values being not good 
+
+```{r}
+dam_average = dam_average %>% 
+  filter(country != 'Iraq')
+```
+
+# Data Vis 
+
+Lets make a bar graph of the dam height in M
+
+```{r}
+ggplot(dam_average, aes( x = country, y= mean_h))+
+geom_col(aes(fill = country))+
+theme_linedraw()+
+theme(axis.text.x = element_text(angle = 90))+
+theme(legend.position = 'none')+
+labs(x = 'Country',
+y = 'Mean Height',
+title = 'Mean Dam height by country')
+```
+Im going to make one more plot of the dam height by maximum storage capacity 
+
+```{r}
+ggplot(dam_clean, aes(x = cap_mcm,
+                      y = dam_hgt_m))+
+geom_point(aes(color = country))+
+theme_linedraw()+
+labs(x = 'Resovoir Capacity (mcm)',
+y = 'Dam Height',
+title = 'Dam height and Capacity')
+```
+
